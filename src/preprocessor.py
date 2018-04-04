@@ -8,6 +8,7 @@ class Preprocessor:
         #Clip the ROI
         xLength = image.shape[1];
         yLength = image.shape[0];
+        resultImg = np.copy(image);
 
         shiftUp = 100/720 * yLength#75/540 * yLength; #75
         shiftSideUp = 550/1280 * xLength;#400/960 *xLength; #400
@@ -31,9 +32,9 @@ class Preprocessor:
         GoodIndeces = GoodIndecesL & GoodIndecesR
 
         badIndeces = ~GoodIndeces
-        image[badIndeces] = 0;
+        resultImg[badIndeces] = 0;
         controlPts = np.float32([LeftDown, LeftUp, RightUp, RightDown])
-        return {'imageR': image, 'controlPts': controlPts}
+        return {'imageR': resultImg, 'controlPts': controlPts}
 
     def extractChannel(self, img, mode):
         if(mode == 'gray'):
@@ -55,7 +56,7 @@ class Preprocessor:
             return result;
         else:
             channel = self.extractChannel(img, mode)
-            channelBinary = self.applySobel(channel, 0, 255)
+            channelBinary = self.applySobel(channel, 70, 255)
             return channelBinary
 
     def applySobel(self, img, thresh_min, thresh_max):
@@ -71,8 +72,7 @@ class Preprocessor:
         binary_output = np.zeros_like(scaled_sobel);
         binary_output[(scaled_sobel > thresh_min) & (scaled_sobel <= thresh_max)] = 255
 
-        print(np.min(scaled_sobel))
         #plt.imshow(sobelMag, cmap='gray')
         #plt.show()
-        return scaled_sobel
+        return binary_output
         #plt.imshow(binary_output, cmap='gray')

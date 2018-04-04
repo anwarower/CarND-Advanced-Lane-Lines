@@ -25,7 +25,6 @@ class Camera:
         self.ny = nCaly;
         self.chessBoardPath = pathName;
         self.testImgPath = self.chessBoardPath.replace('*', '1');
-        print(self.testImgPath)
         self.init3DCoords();
         self.setImgSize();
 
@@ -81,7 +80,6 @@ class Camera:
 
 
     def undistortImg(self, img):
-        print(self.DistCoeff)
         dst = cv2.undistort(img, self.P, self.DistCoeff, None, self.P)
         return dst
 
