@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
 class Preprocessor:
+    thresh_sobelx_max = {'gray': 100, 'sat': 100}
+    thresh_sobelx_min = {'gray': 50 , 'sat': 20 }
+
     def crop(self, image):
         #Clip the ROI
         xLength = image.shape[1];
@@ -49,14 +52,14 @@ class Preprocessor:
     def extractEdges(self, img, mode):
         if(mode == 'all'):
             gray = self.extractChannel(img, 'gray')
-            grayBinary = self.applySobel(gray, 150, 255)
+            grayBinary = self.applySobel(gray, self.thresh_sobelx_min['gray'], self.thresh_sobelx_max['gray'])
             sat  = self.extractChannel(img, 'sat')
-            satBinary  = self.applySobel(sat, 70, 255)
+            satBinary  = self.applySobel(sat, self.thresh_sobelx_min['sat'], self.thresh_sobelx_max['sat'])
             result = grayBinary | satBinary;
             return result;
         else:
             channel = self.extractChannel(img, mode)
-            channelBinary = self.applySobel(channel, 70, 255)
+            channelBinary = self.applySobel(channel, self.thresh_sobelx_min[mode], self.thresh_sobelx_max[mode])
             return channelBinary
 
     def applySobel(self, img, thresh_min, thresh_max):
@@ -67,7 +70,7 @@ class Preprocessor:
         # 3) Calculate the magnitude
         sobelMag = np.sqrt(sobelx ** 2 + sobely ** 2)
         # 4) Scale to 8-bit (0 - 255) and convert to type = np.uint8
-        scaled_sobel = np.uint8(255 * sobelMag / np.max(sobelMag));
+        scaled_sobel = np.uint8(255 * sobelx / np.max(sobelx));
         # 5) Create a binary mask where mag thresholds are met
         binary_output = np.zeros_like(scaled_sobel);
         binary_output[(scaled_sobel > thresh_min) & (scaled_sobel <= thresh_max)] = 255
