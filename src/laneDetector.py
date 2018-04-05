@@ -1,19 +1,44 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
+import plausibility as plaus
+class LaneBoundary:
+    lane_inds = [];
+    x = [];
+    y = [];
+    fit = []; #2nd degree polynomial coefficients
+    def evaluateX(self, y):
+        #evaluate the polynomial
+        if(len(self.fit) == 3):
+            return (self.fit[0]*(y**2) + self.fit[1]*y +self.fit[2]);
+        else:
+            return 0
 
+            
 class LaneLinesFinder:
-    left_fit = [];
-    right_fit = [];
-    left_lane_inds = [];
-    right_lane_inds = [];
+    laneBoundaryLeft = LaneBoundary();
+    laneBoundaryRight = LaneBoundary();
+    plausiModule      = plaus.PFilter();
     nonzerox = [];
     nonzeroy = [];
+    isDetectedBefore = False;
 
     def showHist(self, img):
         histogram = np.sum(img[img.shape[0]//2:,:], axis=0)
         plt.plot(histogram)
         plt.show()
+
+    def findLane(self, binary_warped):
+        output = self.slidingWindowSearch(binary_warped)
+        self.plausiModule.filter(self.laneBoundaryLeft,
+                                 self.laneBoundaryRight)
+        return output;
+        #if(self.isDetectedBefore):
+        #    return self.BoundingRegionSearch(binary_warped)
+        #else:
+        #    return self.slidingWindowSearch(binary_warped)
+        #
+
 
     def slidingWindowSearch(self, binary_warped):
         # Assuming you have created a warped binary image called "binary_warped"
@@ -44,8 +69,8 @@ class LaneLinesFinder:
         # Set minimum number of pixels found to recenter window
         minpix = 50
         # Create empty lists to receive left and right lane pixel indices
-        self.left_lane_inds = []
-        self.right_lane_inds = []
+        self.laneBoundaryLeft.lane_inds = []
+        self.laneBoundaryRight.lane_inds = []
 
         # Step through the windows one by one
         for window in range(nwindows):
@@ -67,8 +92,8 @@ class LaneLinesFinder:
             good_right_inds = ((self.nonzeroy >= win_y_low) & (self.nonzeroy < win_y_high) &
             (self.nonzerox >= win_xright_low) &  (self.nonzerox < win_xright_high)).nonzero()[0]
             # Append these indices to the lists
-            self.left_lane_inds.append(good_left_inds)
-            self.right_lane_inds.append(good_right_inds)
+            self.laneBoundaryLeft.lane_inds.append(good_left_inds)
+            self.laneBoundaryRight.lane_inds.append(good_right_inds)
             # If you found > minpix pixels, recenter next window on their mean position
             if len(good_left_inds) > minpix:
                 leftx_current = np.int(np.mean(self.nonzerox[good_left_inds]))
@@ -76,18 +101,20 @@ class LaneLinesFinder:
                 rightx_current = np.int(np.mean(self.nonzerox[good_right_inds]))
 
         # Concatenate the arrays of indices
-        self.left_lane_inds = np.concatenate(self.left_lane_inds)
-        self.right_lane_inds = np.concatenate(self.right_lane_inds)
+        self.laneBoundaryLeft.lane_inds  = np.concatenate(self.laneBoundaryLeft.lane_inds)
+        self.laneBoundaryRight.lane_inds = np.concatenate(self.laneBoundaryRight.lane_inds)
 
         # Extract left and right line pixel positions
-        leftx = self.nonzerox[self.left_lane_inds]
-        lefty = self.nonzeroy[self.left_lane_inds]
-        rightx = self.nonzerox[self.right_lane_inds]
-        righty = self.nonzeroy[self.right_lane_inds]
+        self.laneBoundaryLeft.x = self.nonzerox[self.laneBoundaryLeft.lane_inds]
+        self.laneBoundaryLeft.y = self.nonzeroy[self.laneBoundaryLeft.lane_inds]
+        self.laneBoundaryRight.x = self.nonzerox[self.laneBoundaryRight.lane_inds]
+        self.laneBoundaryRight.y = self.nonzeroy[self.laneBoundaryRight.lane_inds]
 
         # Fit a second order polynomial to each
-        self.left_fit = np.polyfit(lefty, leftx, 2)
-        self.right_fit = np.polyfit(righty, rightx, 2)
+        self.laneBoundaryLeft.fit  = np.polyfit(self.laneBoundaryLeft.y, self.laneBoundaryLeft.x, 2)
+        self.laneBoundaryRight.fit = np.polyfit(self.laneBoundaryRight.y, self.laneBoundaryRight.x, 2)
+        self.isDetectedBefore = True
+
         return out_img
 
     def BoundingRegionSearch(self, binary_warped):
@@ -98,27 +125,31 @@ class LaneLinesFinder:
         self.nonzeroy = np.array(nonzero[0])
         self.nonzerox = np.array(nonzero[1])
         margin = 100
-        self.left_lane_inds = ((nonzerox > (self.left_fit[0]*(nonzeroy**2) + self.left_fit[1]*nonzeroy +
-        self.left_fit[2] - margin)) & (nonzerox < (self.left_fit[0]*(nonzeroy**2) +
-        self.left_fit[1]*nonzeroy + self.left_fit[2] + margin)))
 
-        self.right_lane_inds = ((nonzerox > (self.right_fit[0]*(nonzeroy**2) + self.right_fit[1]*nonzeroy +
-        self.right_fit[2] - margin)) & (nonzerox < (self.right_fit[0]*(nonzeroy**2) +
-        self.right_fit[1]*nonzeroy + self.right_fit[2] + margin)))
+        self.laneBoundaryLeft.lane_inds = ((self.nonzerox > (self.laneBoundaryLeft.evaluateX(self.nonzeroy) - margin))
+                                         & (self.nonzerox < (self.laneBoundaryLeft.evaluateX(self.nonzeroy) + margin)))
+
+        self.laneBoundaryRight.lane_inds = ((self.nonzerox > (self.laneBoundaryRight.evaluateX(self.nonzeroy) - margin))
+                                         &  (self.nonzerox < (self.laneBoundaryRight.evaluateX(self.nonzeroy) + margin)))
 
         # Again, extract left and right line pixel positions
-        leftx = nonzerox[left_lane_inds]
-        lefty = nonzeroy[left_lane_inds]
-        rightx = nonzerox[right_lane_inds]
-        righty = nonzeroy[right_lane_inds]
+        self.laneBoundaryLeft.x  = self.nonzerox[self.laneBoundaryLeft.lane_inds]
+        self.laneBoundaryLeft.y  = self.nonzeroy[self.laneBoundaryLeft.lane_inds]
+        self.laneBoundaryRight.x = self.nonzerox[self.laneBoundaryRight.lane_inds]
+        self.laneBoundaryRight.y = self.nonzeroy[self.laneBoundaryRight.lane_inds]
         # Fit a second order polynomial to each
-        self.left_fit = np.polyfit(lefty, leftx, 2)
-        self.right_fit = np.polyfit(righty, rightx, 2)
+        if((len(self.laneBoundaryLeft.y) > 3) & (len(self.laneBoundaryLeft.y) > 3)):
+            if((len(self.laneBoundaryRight.y) > 3) & (len(self.laneBoundaryRight.y) > 3)):
+                self.laneBoundaryLeft.fit  = np.polyfit(self.laneBoundaryLeft.y, self.laneBoundaryLeft.x, 2)
+                self.laneBoundaryRight.fit = np.polyfit(self.laneBoundaryRight.y, self.laneBoundaryRight.x, 2)
+            else:
+                self.isDetectedBefore = False;
+                #return self.slidingWindowSearch(binary_warped)
         # Generate x and y values for plotting
-        ploty = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0] )
-        left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
-        right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
-
+        #ploty = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0] )
+        #left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
+        #right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+        #print('tracked')
 
 
     def composeOutputFrame(self, binary_warped, out_img, Minv, undist):
@@ -127,14 +158,16 @@ class LaneLinesFinder:
             #plt.imshow(out_img)
             #plt.show()
             ploty = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0] )
-            left_fit = self.left_fit;
-            right_fit = self.right_fit;
+            #left_fit = self.left_fit;
+            #right_fit = self.right_fit;
 
-            left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
-            right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+            left_fitx  = self.laneBoundaryLeft.evaluateX(ploty)
+            right_fitx = self.laneBoundaryRight.evaluateX(ploty)
 
-            out_img[self.nonzeroy[self.left_lane_inds], self.nonzerox[self.left_lane_inds]] = [255, 0, 0]
-            out_img[self.nonzeroy[self.right_lane_inds], self.nonzerox[self.right_lane_inds]] = [0, 0, 255]
+            leftIdx = self.laneBoundaryLeft.lane_inds;
+            rightIdx= self.laneBoundaryRight.lane_inds;
+            #out_img[self.nonzeroy[leftIdx], self.nonzerox[leftIdx]] = [255, 0, 0]
+            #out_img[self.nonzeroy[rightIdx], self.nonzerox[rightIdx]] = [0, 0, 255]
             #plt.imshow(out_img)
             #plt.plot(left_fitx, ploty, color='yellow')
             #plt.plot(right_fitx, ploty, color='yellow')
