@@ -23,17 +23,11 @@ algoPipeline = fp.FramePipeline();
 #cam.calibrate();
 
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-#InputImg = cv2.imread('test_images/test1.jpg')
-#output   = algoPipeline.processFrame(InputImg)
-#cv2.imshow('out', output)
-#cv2.waitKey()
-#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-inputPath = 'project_video.mp4'
-outputPath = 'test_out_saity.mp4'
-clip1 = VideoFileClip(inputPath);
-white_clip = clip1.fl_image(algoPipeline.processFrame) #NOTE: this function expects color images!!
-#get_ipython().run_line_magic('time', 'white_clip.write_videofile(outputPath, audio=False)')
-white_clip.write_videofile(outputPath, audio=False)
+InputImg = cv2.imread('test_images/test6.jpg') #1, 4, 5, 6
+output   = algoPipeline.processFrame(InputImg)
+cv2.imshow('out', output)
+cv2.waitKey()
+
 
 #croppingData = preprocessor.crop(InputImg)
 #croppedImg = croppingData['imageR']

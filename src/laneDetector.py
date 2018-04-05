@@ -7,6 +7,8 @@ class LaneBoundary:
     x = [];
     y = [];
     fit = []; #2nd degree polynomial coefficients
+    isDetectedLastFrame = False;
+    
     def evaluateX(self, y):
         #evaluate the polynomial
         if(len(self.fit) == 3):
@@ -14,14 +16,13 @@ class LaneBoundary:
         else:
             return 0
 
-            
+
 class LaneLinesFinder:
     laneBoundaryLeft = LaneBoundary();
     laneBoundaryRight = LaneBoundary();
     plausiModule      = plaus.PFilter();
     nonzerox = [];
     nonzeroy = [];
-    isDetectedBefore = False;
 
     def showHist(self, img):
         histogram = np.sum(img[img.shape[0]//2:,:], axis=0)
@@ -30,14 +31,15 @@ class LaneLinesFinder:
 
     def findLane(self, binary_warped):
         output = self.slidingWindowSearch(binary_warped)
-        self.plausiModule.filter(self.laneBoundaryLeft,
-                                 self.laneBoundaryRight)
-        return output;
-        #if(self.isDetectedBefore):
+        #if:
         #    return self.BoundingRegionSearch(binary_warped)
         #else:
         #    return self.slidingWindowSearch(binary_warped)
-        #
+        #self.plausiModule.filter(self.laneBoundaryLeft,
+        #                         self.laneBoundaryRight)
+        return output;
+
+
 
 
     def slidingWindowSearch(self, binary_warped):
@@ -113,7 +115,7 @@ class LaneLinesFinder:
         # Fit a second order polynomial to each
         self.laneBoundaryLeft.fit  = np.polyfit(self.laneBoundaryLeft.y, self.laneBoundaryLeft.x, 2)
         self.laneBoundaryRight.fit = np.polyfit(self.laneBoundaryRight.y, self.laneBoundaryRight.x, 2)
-        self.isDetectedBefore = True
+
 
         return out_img
 
@@ -142,8 +144,8 @@ class LaneLinesFinder:
             if((len(self.laneBoundaryRight.y) > 3) & (len(self.laneBoundaryRight.y) > 3)):
                 self.laneBoundaryLeft.fit  = np.polyfit(self.laneBoundaryLeft.y, self.laneBoundaryLeft.x, 2)
                 self.laneBoundaryRight.fit = np.polyfit(self.laneBoundaryRight.y, self.laneBoundaryRight.x, 2)
-            else:
-                self.isDetectedBefore = False;
+
+
                 #return self.slidingWindowSearch(binary_warped)
         # Generate x and y values for plotting
         #ploty = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0] )

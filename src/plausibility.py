@@ -3,7 +3,7 @@ import numpy as np
 class PFilter: #Plausibility Filter
     bufferLeft = []
     bufferRight = []
-    N = 10; #frames
+    N = 15; #frames
 
     def filter(self, LBLeft, LBRight):
         #print('filtering')
