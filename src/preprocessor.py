@@ -49,10 +49,10 @@ class Preprocessor:
     def extractEdges(self, img, mode):
         if(mode == 'all'):
             gray = self.extractChannel(img, 'gray')
-            grayBinary = self.applySobel(gray, 0, 255)
+            grayBinary = self.applySobel(gray, 150, 255)
             sat  = self.extractChannel(img, 'sat')
-            satBinary  = self.applySobel(sat, 0, 255)
-            result = grayBinary & satBinary;
+            satBinary  = self.applySobel(sat, 70, 255)
+            result = grayBinary | satBinary;
             return result;
         else:
             channel = self.extractChannel(img, mode)
