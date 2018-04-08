@@ -64,18 +64,11 @@ class Preprocessor:
 
     def applySobel(self, img, thresh_min, thresh_max):
         sobel_kernel = 5
-        # 2) Take the gradient in x and y separately
+        # Take the gradient in x
         sobelx = cv2.Sobel(img, cv2.CV_64F, 1, 0, sobel_kernel)
-        sobely = cv2.Sobel(img, cv2.CV_64F, 0, 1, sobel_kernel)
-        # 3) Calculate the magnitude
-        sobelMag = np.sqrt(sobelx ** 2 + sobely ** 2)
-        # 4) Scale to 8-bit (0 - 255) and convert to type = np.uint8
+        # Scale to 8-bit (0 - 255) and convert to type = np.uint8
         scaled_sobel = np.uint8(255 * sobelx / np.max(sobelx));
-        # 5) Create a binary mask where mag thresholds are met
+        # Create a binary mask where mag thresholds are met
         binary_output = np.zeros_like(scaled_sobel);
         binary_output[(scaled_sobel > thresh_min) & (scaled_sobel <= thresh_max)] = 255
-
-        #plt.imshow(sobelMag, cmap='gray')
-        #plt.show()
         return binary_output
-        #plt.imshow(binary_output, cmap='gray')

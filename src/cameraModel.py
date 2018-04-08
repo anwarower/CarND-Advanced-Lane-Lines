@@ -59,13 +59,15 @@ class Camera:
                 self.map_3D.append(self.input3DCoords)
                 self.map_2D.append(corners)
 
-                # Draw and display the corners
+                #for the final report
+                """
+                #Draw and display the corners
                 #cv2.drawChessboardCorners(img, (self.nx,self.ny), corners, ret)
                 #write_name = 'corners_found'+str(idx)+'.jpg'
                 #cv2.imwrite(write_name, img)
                 #cv2.imshow('img', img)
                 #cv2.waitKey(500)
-        #cv2.destroyAllWindows()
+                #cv2.destroyAllWindows()"""
 
 
 

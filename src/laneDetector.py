@@ -8,38 +8,91 @@ class LaneBoundary:
     y = [];
     fit = []; #2nd degree polynomial coefficients
     isDetectedLastFrame = False;
-    
+
+    def reset(self):
+        self.lane_inds = []
+        self.x = []
+        self.y = []
+        self.fit = []
+        self.isDetectedLastFrame = False;
+
     def evaluateX(self, y):
         #evaluate the polynomial
         if(len(self.fit) == 3):
             return (self.fit[0]*(y**2) + self.fit[1]*y +self.fit[2]);
         else:
+            return -1
+
+    def evaluateCurvature(self, y):
+        #evaluate the polynomial
+        if(len(self.fit) == 3):
+            return ((1 + (2*self.fit[0]*y + self.fit[1])**2)**1.5) / np.absolute(2*self.fit[0])
+        else:
+            return -1
+
+    def evaluateIn3D(self, y, quantity):
+        if(len(self.fit) < 3):
             return 0
+        my = 30/720 # meters per pixel in y dimension
+        mx = 3.7/900 # meters per pixel in x dimension
+        tempLane = LaneBoundary();
+        #create a scaled polynomial in 3D
+        tempLane.fit = [self.fit[0] * mx / (my ** 2),
+                        self.fit[1] * (mx/my),
+                        self.fit[2]
+                        ]
+        if(quantity == 'curvature'):
+            return tempLane.evaluateCurvature(y);
+        else:
+            return tempLane.evaluateX(y);
 
 
 class LaneLinesFinder:
     laneBoundaryLeft = LaneBoundary();
     laneBoundaryRight = LaneBoundary();
-    plausiModule      = plaus.PFilter();
+    plausiModule      = None
     nonzerox = [];
     nonzeroy = [];
+    frameWidth = 0;
+    frameHeight = 0;
+    distanceFromCenter = 0;
+
+    def __init__(self, frameWidth, frameHeight):
+        self.frameWidth = frameWidth;
+        self.frameHeight = frameHeight
+        self.plausiModule = plaus.PFilter(frameWidth, frameHeight)
 
     def showHist(self, img):
         histogram = np.sum(img[img.shape[0]//2:,:], axis=0)
         plt.plot(histogram)
         plt.show()
 
+
+    def reset(self, img):
+        self.laneBoundaryLeft.reset()
+        self.laneBoundaryRight.reset()
+
+    def calcLaneWidthInPx(self):
+        yAtEvaluation = self.frameHeight;
+        return self.laneBoundaryRight.evaluateX(yAtEvaluation) - self.laneBoundaryLeft.evaluateX(yAtEvaluation)
+
+    def calculateDistanceFromCenter(self):
+        imgCenter = self.frameWidth/2
+        laneCenter = (self.laneBoundaryRight.evaluateX(self.frameHeight) + self.laneBoundaryLeft.evaluateX(self.frameHeight))/2
+        distanceFromCenter = (laneCenter - imgCenter) * 3.2/920
+        return distanceFromCenter
+
     def findLane(self, binary_warped):
-        output = self.slidingWindowSearch(binary_warped)
-        #if:
-        #    return self.BoundingRegionSearch(binary_warped)
-        #else:
-        #    return self.slidingWindowSearch(binary_warped)
-        #self.plausiModule.filter(self.laneBoundaryLeft,
-        #                         self.laneBoundaryRight)
-        return output;
-
-
+        output = binary_warped
+        if(self.laneBoundaryLeft.isDetectedLastFrame & self.laneBoundaryRight.isDetectedLastFrame):
+            output = self.BoundingRegionSearch(binary_warped)
+            self.plausiModule.filter(self.laneBoundaryLeft,
+                                             self.laneBoundaryRight)
+        else:
+            output = self.slidingWindowSearch(binary_warped)
+            self.plausiModule.filter(self.laneBoundaryLeft,
+                                             self.laneBoundaryRight)
+        return output
 
 
     def slidingWindowSearch(self, binary_warped):
@@ -113,8 +166,16 @@ class LaneLinesFinder:
         self.laneBoundaryRight.y = self.nonzeroy[self.laneBoundaryRight.lane_inds]
 
         # Fit a second order polynomial to each
-        self.laneBoundaryLeft.fit  = np.polyfit(self.laneBoundaryLeft.y, self.laneBoundaryLeft.x, 2)
-        self.laneBoundaryRight.fit = np.polyfit(self.laneBoundaryRight.y, self.laneBoundaryRight.x, 2)
+        if(len(self.laneBoundaryLeft.x) > 0):
+            self.laneBoundaryLeft.fit  = np.polyfit(self.laneBoundaryLeft.y, self.laneBoundaryLeft.x, 2)
+            self.laneBoundaryLeft.isDetectedLastFrame = True;
+        else:
+            self.laneBoundaryLeft.isDetectedLastFrame = False;
+        if(len(self.laneBoundaryRight.x) > 0):
+            self.laneBoundaryRight.fit  = np.polyfit(self.laneBoundaryRight.y, self.laneBoundaryRight.x, 2)
+            self.laneBoundaryRight.isDetectedLastFrame = True;
+        else:
+            self.laneBoundaryLeft.isDetectedLastFrame = False;
 
 
         return out_img
@@ -141,56 +202,25 @@ class LaneLinesFinder:
         self.laneBoundaryRight.y = self.nonzeroy[self.laneBoundaryRight.lane_inds]
         # Fit a second order polynomial to each
         if((len(self.laneBoundaryLeft.y) > 3) & (len(self.laneBoundaryLeft.y) > 3)):
-            if((len(self.laneBoundaryRight.y) > 3) & (len(self.laneBoundaryRight.y) > 3)):
-                self.laneBoundaryLeft.fit  = np.polyfit(self.laneBoundaryLeft.y, self.laneBoundaryLeft.x, 2)
-                self.laneBoundaryRight.fit = np.polyfit(self.laneBoundaryRight.y, self.laneBoundaryRight.x, 2)
+            self.laneBoundaryLeft.fit  = np.polyfit(self.laneBoundaryLeft.y, self.laneBoundaryLeft.x, 2)
+        else:
+            self.laneBoundaryLeft.isDetectedLastFrame = False;
+        if((len(self.laneBoundaryRight.y) > 3) & (len(self.laneBoundaryRight.y) > 3)):
+            self.laneBoundaryRight.fit = np.polyfit(self.laneBoundaryRight.y, self.laneBoundaryRight.x, 2)
+        else:
+            self.laneBoundaryRight.isDetectedLastFrame = False;
 
+        out_img = np.dstack((binary_warped, binary_warped, binary_warped))*255
+        ploty = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0] )
 
-                #return self.slidingWindowSearch(binary_warped)
-        # Generate x and y values for plotting
-        #ploty = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0] )
-        #left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
-        #right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
-        #print('tracked')
+        out_img[self.laneBoundaryLeft.y, self.laneBoundaryLeft.x] = [255, 0, 0]
+        out_img[self.laneBoundaryRight.y, self.laneBoundaryRight.x] = [0, 0, 255]
 
-
-    def composeOutputFrame(self, binary_warped, out_img, Minv, undist):
-            # Generate x and y values for plotting
-            #cv2.imshow('s', out_img)
-            #plt.imshow(out_img)
-            #plt.show()
-            ploty = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0] )
-            #left_fit = self.left_fit;
-            #right_fit = self.right_fit;
-
-            left_fitx  = self.laneBoundaryLeft.evaluateX(ploty)
-            right_fitx = self.laneBoundaryRight.evaluateX(ploty)
-
-            leftIdx = self.laneBoundaryLeft.lane_inds;
-            rightIdx= self.laneBoundaryRight.lane_inds;
-            #out_img[self.nonzeroy[leftIdx], self.nonzerox[leftIdx]] = [255, 0, 0]
-            #out_img[self.nonzeroy[rightIdx], self.nonzerox[rightIdx]] = [0, 0, 255]
-            #plt.imshow(out_img)
-            #plt.plot(left_fitx, ploty, color='yellow')
-            #plt.plot(right_fitx, ploty, color='yellow')
-            #plt.xlim(0, 1280)
-            #plt.ylim(720, 0)
-            #plt.show()
-
-            #try to vis
-            warp_zero = np.zeros_like(binary_warped).astype(np.uint8)
-            color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
-
-            # Recast the x and y points into usable format for cv2.fillPoly()
-            pts_left = np.array([np.transpose(np.vstack([left_fitx, ploty]))])
-            pts_right = np.array([np.flipud(np.transpose(np.vstack([right_fitx, ploty])))])
-            pts = np.hstack((pts_left, pts_right))
-
-            # Draw the lane onto the warped blank image
-            cv2.fillPoly(color_warp, np.int_([pts]), (0,255, 0))
-
-            # Warp the blank back to original image space using inverse perspective matrix (Minv)
-            newwarp = cv2.warpPerspective(color_warp, Minv, (undist.shape[1], undist.shape[0]))
-            # Combine the result with the original image
-            result = cv2.addWeighted(undist, 1, newwarp, 0.3, 0)
-            return result;
+        """#for the final report 
+        plt.imshow(out_img)
+        #plt.plot(self.laneBoundaryLeft.evaluateX(ploty), ploty, color='yellow')
+        #plt.plot(self.laneBoundaryRight.evaluateX(ploty), ploty, color='yellow')
+        #plt.xlim(0, 1280)
+        #plt.ylim(720, 0)
+        #plt.show()"""
+        return out_img;

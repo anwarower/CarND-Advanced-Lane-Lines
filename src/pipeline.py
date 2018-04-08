@@ -6,32 +6,49 @@ import cv2
 import preprocessor as prep
 import homography as homo
 import laneDetector as lf
+import visualizer as visu
 
 class FramePipeline:
     cam = cm.Camera();
     preprocessor = prep.Preprocessor();
     homographyOp = homo.Homography();
-    laneLinesFinder = lf.LaneLinesFinder();
+    laneLinesFinder = None
+    currOriginalFrame = None
+    visualizer = None
+
+    def __init__(self, frameWidth, frameHeight):
+        self.frameWidth = frameWidth
+        self.frameHeight = frameHeight
+        self.cam.init(9, 6, 'camera_cal/calibration*.jpg')
+        self.cam.calibrate();
+        self.laneLinesFinder = lf.LaneLinesFinder(frameWidth, frameHeight);
+        self.visualizer = visu.Visualizer(self.laneLinesFinder, self);
+
 
     def processFrame(self, InputImg):
 
-        sobelImg     = self.preprocessor.extractEdges(InputImg, 'all')
-        #cv2.imshow('after Sobel', sobelImg)
-        #cv2.waitKey()
+        self.currOriginalFrame = InputImg
+
+        undistortedImg= self.cam.undistortImg(InputImg)
+
+        sobelImg     = self.preprocessor.extractEdges(undistortedImg, 'all')
+
         croppingData = self.preprocessor.crop(sobelImg)
+
         croppedImg   = croppingData['imageR']
-        #cv2.imshow('after Cropping', croppedImg)
-        #cv2.waitKey()
-        rectImg      = self.homographyOp.rectify({'imageR': sobelImg, 'controlPts':croppingData['controlPts']});
-        #cv2.imshow('after Rectifying', rectImg)
-        #cv2.waitKey()
-        warped_Result= self.laneLinesFinder.findLane(rectImg)
-        #cv2.imshow('after fitting', warped_Result)
-        #cv2.waitKey()
-        output       = self.laneLinesFinder.composeOutputFrame(rectImg,
-                                                        warped_Result,
-                                                        self.homographyOp.Minv,
-                                                        InputImg)
-        #cv2.imshow('after warping back', output)
-        #cv2.waitKey()
+
+        rectImg      = self.homographyOp.rectify({'imageR': sobelImg,
+                                        'controlPts':croppingData['controlPts']});
+
+        warped_out   = self.laneLinesFinder.findLane(rectImg)
+
+        output = self.visualizer.visualizeFrame(rectImg)
+
+        #only for the report at the end
+        """cv2.imshow('after Sobel', sobelImg)
+        cv2.imshow('after Cropping', croppedImg)
+        cv2.imshow('after Rectifying', rectImg)
+        cv2.imshow('after fitting', warped_out)
+        cv2.imshow('after warping back', output)
+        cv2.waitKey()"""
         return output;
