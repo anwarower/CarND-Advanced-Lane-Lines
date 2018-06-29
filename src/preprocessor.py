@@ -36,8 +36,9 @@ class Preprocessor:
 
         badIndeces = ~GoodIndeces
         resultImg[badIndeces] = 0;
-        controlPts = np.float32([LeftDown, LeftUp, RightUp, RightDown])
-        return {'imageR': resultImg, 'controlPts': controlPts}
+        #in the future, those control points should be dynamically refined 
+        #controlPts = np.float32([LeftDown, LeftUp, RightUp, RightDown])
+        return resultImg
 
     def extractChannel(self, img, mode):
         if(mode == 'gray'):

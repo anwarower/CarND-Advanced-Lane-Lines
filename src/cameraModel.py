@@ -83,6 +83,8 @@ class Camera:
 
     def undistortImg(self, img):
         dst = cv2.undistort(img, self.P, self.DistCoeff, None, self.P)
+        #for the report
+        #cv2.imwrite('output_images/undistortedExample.jpg', dst)
         return dst
 
 

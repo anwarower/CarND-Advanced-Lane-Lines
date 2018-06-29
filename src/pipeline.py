@@ -21,8 +21,10 @@ class FramePipeline:
         self.frameHeight = frameHeight
         self.cam.init(9, 6, 'camera_cal/calibration*.jpg')
         self.cam.calibrate();
-        self.laneLinesFinder = lf.LaneLinesFinder(frameWidth, frameHeight);
-        self.visualizer = visu.Visualizer(self.laneLinesFinder, self);
+        self.homographyOp.setFrameSize(frameWidth, frameHeight)
+        self.homographyOp.estimateRoadHomography()
+        self.laneLinesFinder = lf.LaneLinesFinder(frameWidth, frameHeight)
+        self.visualizer = visu.Visualizer(self.laneLinesFinder, self)
 
 
     def processFrame(self, InputImg):
@@ -33,22 +35,20 @@ class FramePipeline:
 
         sobelImg     = self.preprocessor.extractEdges(undistortedImg, 'all')
 
-        croppingData = self.preprocessor.crop(sobelImg)
+        croppedImg = self.preprocessor.crop(sobelImg)
 
-        croppedImg   = croppingData['imageR']
-
-        rectImg      = self.homographyOp.rectify({'imageR': sobelImg,
-                                        'controlPts':croppingData['controlPts']});
+        rectImg      = self.homographyOp.warp(croppedImg);
 
         warped_out   = self.laneLinesFinder.findLane(rectImg)
 
         output = self.visualizer.visualizeFrame(rectImg)
 
         #only for the report at the end
-        """cv2.imshow('after Sobel', sobelImg)
-        cv2.imshow('after Cropping', croppedImg)
-        cv2.imshow('after Rectifying', rectImg)
-        cv2.imshow('after fitting', warped_out)
-        cv2.imshow('after warping back', output)
-        cv2.waitKey()"""
+        #cv2.imwrite('afterUndist.jpg', undistortedImg)
+        #cv2.imwrite('afterSobel.jpg', sobelImg)
+        #cv2.imwrite('afterCropping.jpg', croppedImg)
+        #cv2.imwrite('afterRectifying.jpg', rectImg)
+        #cv2.imwrite('afterFitting.jpg', warped_out)
+        #cv2.imwrite('afterWarpingBack.jpg', output)
+        #cv2.waitKey()
         return output;

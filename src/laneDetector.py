@@ -33,18 +33,19 @@ class LaneBoundary:
     def evaluateIn3D(self, y, quantity):
         if(len(self.fit) < 3):
             return 0
-        my = 30/720 # meters per pixel in y dimension
-        mx = 3.7/900 # meters per pixel in x dimension
+        my = 35/720 # meters per pixel in y dimension
+        mx = 3.2/900 # meters per pixel in x dimension
         tempLane = LaneBoundary();
         #create a scaled polynomial in 3D
         tempLane.fit = [self.fit[0] * mx / (my ** 2),
                         self.fit[1] * (mx/my),
                         self.fit[2]
                         ]
+        y3D = y * my;
         if(quantity == 'curvature'):
-            return tempLane.evaluateCurvature(y);
+            return tempLane.evaluateCurvature(y3D);
         else:
-            return tempLane.evaluateX(y);
+            return tempLane.evaluateX(y3D);
 
 
 class LaneLinesFinder:
@@ -177,7 +178,15 @@ class LaneLinesFinder:
         else:
             self.laneBoundaryLeft.isDetectedLastFrame = False;
 
-
+        #for the final report
+        #plt.imshow(out_img)
+        #ploty = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0] )
+        #plt.plot(self.laneBoundaryLeft.evaluateX(ploty), ploty, color='yellow')
+        #plt.plot(self.laneBoundaryRight.evaluateX(ploty), ploty, color='yellow')
+        #plt.xlim(0, 1280)
+        #plt.ylim(720, 0)
+        #plt.imsave('output_images/afterPoly.jpg', out_img)
+        #plt.show()
         return out_img
 
     def BoundingRegionSearch(self, binary_warped):
@@ -216,7 +225,7 @@ class LaneLinesFinder:
         out_img[self.laneBoundaryLeft.y, self.laneBoundaryLeft.x] = [255, 0, 0]
         out_img[self.laneBoundaryRight.y, self.laneBoundaryRight.x] = [0, 0, 255]
 
-        """#for the final report 
+        """#for the final report
         plt.imshow(out_img)
         #plt.plot(self.laneBoundaryLeft.evaluateX(ploty), ploty, color='yellow')
         #plt.plot(self.laneBoundaryRight.evaluateX(ploty), ploty, color='yellow')
