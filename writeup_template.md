@@ -18,14 +18,14 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 
-[image1]: ./output_images/Rep/undistortionValidation.PNG "Undistorted"
-[image2]: ./output_images/Rep/afterUndist.jpg "Road Transformed"
-[image3a]: ./output_images/Rep/afterSobel.jpg "Binary Example"
-[image3b]: ./output_images/Rep/afterCropping.jpg "Cropped Example"
-[image4]: ./output_images/Rep/warpingResult.PNG "Warp Example"
-[image5b]: ./output_images/Rep/afterFitting.jpg "Fit Visual"
-[image5c]: ./output_images/Rep/afterPoly.jpg
-[image6]: ./output_images/Rep/afterWarpingBack.jpg "Output"
+[image1]: ./output_images/undistortionValidation.PNG "Undistorted"
+[image2]: ./output_images/afterUndist.jpg "Road Transformed"
+[image3a]: ./output_images/afterSobel.jpg "Binary Example"
+[image3b]: ./output_images/afterCropping.jpg "Cropped Example"
+[image4]: ./output_images/warpingResult.PNG "Warp Example"
+[image5b]: ./output_images/afterFitting.jpg "Fit Visual"
+[image5c]: ./output_images/afterPoly.jpg
+[image6]: ./output_images/afterWarpingBack.jpg "Output"
 [video1]:https://www.youtube.com/watch?v=b7vBtLmvcEQ&feature=youtu.be "Video"
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
