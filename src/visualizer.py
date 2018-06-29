@@ -32,6 +32,7 @@ class Visualizer:
     def addLaneWidth(self, img, laneLeft, laneRight):
         xL  = laneLeft.evaluateX(img.shape[0]);
         xR  = laneRight.evaluateX(img.shape[0]);
+
         laneWidth = (xR - xL) * 3.2/920;
         addedText = 'Lane Width = {:.2f} m'.format(laneWidth)
         pos = (10, 60)
@@ -75,7 +76,7 @@ class Visualizer:
             cv2.fillPoly(color_warp, np.int_([pts]), (0,255, 0))
 
             # Warp the blank back to original image space using inverse perspective matrix (Minv)
-            warpedBack = cv2.warpPerspective(color_warp, Minv, (undist.shape[1], undist.shape[0]))
+            warpedBack = cv2.warpPerspective(color_warp, Minv, (binary_warped.shape[1], binary_warped.shape[0]))
             # Combine the result with the original image
             result = cv2.addWeighted(undist, 1, warpedBack, 0.3, 0)
         return result;
